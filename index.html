@@ -1,383 +1,271 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Forge AI</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-
-<style>
-
-[x-cloak]{display:none!important;}
-
-body{
-background:#0f0f10;
-}
-
-::-webkit-scrollbar{
-width:6px;
-}
-
-::-webkit-scrollbar-thumb{
-background:#444;
-border-radius:10px;
-}
-
-@keyframes fadeIn{
-from{opacity:0; transform:translateY(10px);}
-to{opacity:1; transform:translateY(0);}
-}
-
-.animate-message{
-animation:fadeIn .35s ease;
-}
-
-.typing-dot{
-width:6px;
-height:6px;
-background:#9ca3af;
-border-radius:50%;
-animation:typing 1.4s infinite;
-}
-
-.typing-dot:nth-child(2){
-animation-delay:.2s;
-}
-
-.typing-dot:nth-child(3){
-animation-delay:.4s;
-}
-
-@keyframes typing{
-0%{opacity:.2; transform:translateY(0);}
-50%{opacity:1; transform:translateY(-3px);}
-100%{opacity:.2; transform:translateY(0);}
-}
-
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge AI | diffanmol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .prose pre { background-color: #0d0d0d !important; border: 1px solid #333; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+        .prose code { color: #ec4899; font-size: 0.9em; }
+        .chat-gradient { background: linear-gradient(180deg, rgba(33,33,33,0) 0%, rgba(33,33,33,1) 100%); }
+    </style>
 </head>
-
-<body class="text-gray-200 h-screen overflow-hidden font-sans"
-x-data="chatApp()" x-init="init()">
-
-<div class="flex h-full">
-
-<!-- SIDEBAR -->
-
-<aside class="w-64 bg-[#18181b] flex flex-col transition-all duration-300"
-:class="sidebarOpen ? 'ml-0' : '-ml-64'">
-
-<div class="p-4">
-<button @click="createNewChat()"
-class="w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 rounded-xl text-sm transition">
-<i data-lucide="plus"></i>
-New Chat
-</button>
-</div>
-
-<div class="flex-1 overflow-y-auto px-2 space-y-1">
-
-<template x-for="chat in chatHistory" :key="chat.id">
-
-<div @click="loadChat(chat.id)"
-class="group flex items-center justify-between px-4 py-2 rounded-lg cursor-pointer text-sm hover:bg-[#27272a]">
-
-<div class="flex gap-2 items-center truncate">
-
-<i data-lucide="message-square" class="w-4 h-4 text-gray-400"></i>
-
-<span x-text="chat.title" class="truncate"></span>
-
-</div>
-
-<button @click.stop="deleteChat(chat.id)"
-class="opacity-0 group-hover:opacity-100 hover:text-red-400">
-
-<i data-lucide="trash-2" class="w-4 h-4"></i>
-
-</button>
-
-</div>
-
-</template>
-
-</div>
-
-<div class="p-4 border-t border-gray-700">
-
-<button @click="showSettings=true"
-class="flex items-center gap-2 hover:bg-[#27272a] w-full px-4 py-2 rounded-lg text-sm">
-
-<i data-lucide="settings"></i>
-
-Settings
-
-</button>
-
-</div>
-
-</aside>
-
-
-<!-- MAIN -->
-
-<main class="flex-1 flex flex-col">
-
-<header class="flex items-center justify-between p-4 border-b border-gray-800">
-
-<button @click="sidebarOpen=!sidebarOpen"
-class="p-2 hover:bg-[#27272a] rounded-lg">
-
-<i data-lucide="menu"></i>
-
-</button>
-
-<div class="text-center">
-
-<h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-Forge AI
-</h1>
-
-<p class="text-xs text-gray-500">
-Owner: diffanmol
-</p>
-
-</div>
-
-<div class="w-8"></div>
-
-</header>
-
-
-<!-- CHAT -->
-
-<div id="chat-container"
-class="flex-1 overflow-y-auto p-6 md:px-24 lg:px-64 space-y-6">
-
-<template x-if="messages.length===0">
-
-<div class="text-center mt-24">
-
-<h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-Forge AI
-</h1>
-
-<p class="text-gray-400 mt-3">
-Your intelligent assistant powered by OpenRouter
-</p>
-
-</div>
-
-</template>
-
-
-<template x-for="(msg,index) in messages" :key="index">
-
-<div class="animate-message flex"
-:class="msg.role==='user' ? 'justify-end':'justify-start'">
-
-<div :class="msg.role==='user'
-?'bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 rounded-2xl max-w-[70%]'
-:'flex gap-3 max-w-[90%]'">
-
-<template x-if="msg.role==='assistant'">
-
-<div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-
-<i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
-
-</div>
-
-</template>
-
-<div x-html="msg.content"
-class="leading-relaxed"></div>
-
-</div>
-
-</div>
-
-</template>
-
-
-<!-- TYPING -->
-
-<div x-show="isLoading"
-class="flex items-center gap-3">
-
-<div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-
-<i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
-
-</div>
-
-<div class="flex gap-1">
-
-<div class="typing-dot"></div>
-
-<div class="typing-dot"></div>
-
-<div class="typing-dot"></div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- INPUT -->
-
-<div class="p-4 md:px-24 lg:px-64">
-
-<div class="relative max-w-4xl mx-auto">
-
-<textarea
-x-model="userInput"
-@keydown.enter.prevent="sendMessage()"
-rows="1"
-placeholder="Ask Forge AI anything..."
-class="w-full bg-[#18181b] rounded-2xl py-4 pl-6 pr-14 outline-none focus:ring-2 focus:ring-blue-600 resize-none">
-
-</textarea>
-
-<button @click="sendMessage()"
-class="absolute right-3 bottom-3 text-blue-400 hover:bg-[#27272a] p-2 rounded-lg">
-
-<i data-lucide="send-horizontal"></i>
-
-</button>
-
-</div>
-
-<p class="text-center text-xs text-gray-500 mt-3">
-
-Forge AI • Powered by OpenRouter • Owner: diffanmol
-
-</p>
-
-</div>
-
-</main>
-
-</div>
-
-
-<script>
-
-function chatApp(){
-
-return{
-
-sidebarOpen:true,
-showSettings:false,
-isLoading:false,
-userInput:'',
-apiKey:'',
-modelName:'deepseek/deepseek-chat',
-
-messages:[],
-chatHistory:[],
-currentChatId:null,
-
-init(){
-
-this.apiKey=localStorage.getItem('api_key')||''
-
-lucide.createIcons()
-
-},
-
-createNewChat(){
-
-this.messages=[]
-
-},
-
-async sendMessage(){
-
-if(!this.userInput.trim())return
-
-const userMsg={role:'user',content:this.userInput}
-
-this.messages.push(userMsg)
-
-const prompt=this.userInput
-
-this.userInput=''
-
-this.isLoading=true
-
-try{
-
-const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
-
-method:"POST",
-
-headers:{
-
-"Authorization":"Bearer "+this.apiKey,
-
-"Content-Type":"application/json"
-
-},
-
-body:JSON.stringify({
-
-model:this.modelName,
-
-messages:this.messages
-
-})
-
-})
-
-const data=await res.json()
-
-const reply=data.choices[0].message.content
-
-this.messages.push({
-
-role:'assistant',
-
-content:reply
-
-})
-
-}catch(e){
-
-this.messages.push({
-
-role:'assistant',
-
-content:"Error connecting to AI."
-
-})
-
-}
-
-this.isLoading=false
-
-this.$nextTick(()=>{
-
-const c=document.getElementById('chat-container')
-
-c.scrollTop=c.scrollHeight
-
-lucide.createIcons()
-
-})
-
-}
-
-}
-
-}
-
-</script>
-
+<body class="bg-[#212121] text-gray-100 h-screen overflow-hidden" x-data="forgeApp()" x-init="init()">
+
+    <div class="flex h-full">
+        <aside class="w-[260px] bg-[#171717] flex-shrink-0 flex flex-col transition-all duration-300 border-r border-white/10" 
+               :class="sidebarOpen ? 'ml-0' : '-ml-[260px]'">
+            
+            <div class="p-3">
+                <button @click="createNewChat()" class="w-full flex items-center gap-3 px-3 py-2 hover:bg-[#2c2c2c] rounded-md border border-white/20 text-sm transition text-left">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span class="font-medium">New chat</span>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+                <div class="text-[10px] font-bold text-gray-500 px-3 py-2 uppercase tracking-wider">Recent</div>
+                <template x-for="chat in chatHistory" :key="chat.id">
+                    <div @click="loadChat(chat.id)" 
+                         :class="currentChatId === chat.id ? 'bg-[#2c2c2c]' : 'hover:bg-[#2c2c2c]'"
+                         class="group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer text-sm animate-fadeIn">
+                        <div class="flex items-center gap-3 truncate pr-2">
+                            <i data-lucide="message-square" class="w-4 h-4 text-gray-400"></i>
+                            <span x-text="chat.title" class="truncate"></span>
+                        </div>
+                        <button @click.stop="deleteChat(chat.id)" class="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </template>
+            </div>
+
+            <div class="p-3 border-t border-white/10 space-y-1">
+                <button @click="showSettings = true" class="flex items-center gap-3 w-full px-3 py-2 hover:bg-[#2c2c2c] rounded-md text-sm">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    Settings
+                </button>
+                <div class="px-3 py-2 text-[11px] text-gray-500 flex flex-col italic">
+                    <span>Forge AI v1.0</span>
+                    <span class="text-blue-400 not-italic font-medium">Made by diffanmol</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col relative bg-[#212121]">
+            <header class="sticky top-0 z-10 p-3 flex justify-between items-center bg-[#212121]/80 backdrop-blur-md">
+                <button @click="sidebarOpen = !sidebarOpen" class="p-2 hover:bg-[#2c2c2c] rounded-md text-gray-400">
+                    <i data-lucide="panel-left" class="w-5 h-5"></i>
+                </button>
+                <div class="text-sm font-semibold text-gray-300">Forge AI <span class="text-gray-500 font-normal">| Gemini Pro</span></div>
+                <div class="w-8 h-8 rounded bg-orange-600 flex items-center justify-center text-xs font-bold">DA</div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto" id="chat-container">
+                <template x-if="messages.length === 0">
+                    <div class="h-full flex flex-col items-center justify-center opacity-20 select-none">
+                        <i data-lucide="flame" class="w-16 h-16 mb-4 text-orange-500"></i>
+                        <h1 class="text-3xl font-bold italic">FORGE AI</h1>
+                    </div>
+                </template>
+
+                <div class="max-w-3xl mx-auto w-full px-4 pt-4 pb-32">
+                    <template x-for="(msg, index) in messages" :key="index">
+                        <div class="py-6 flex gap-6 border-b border-white/5 last:border-0" 
+                             :class="msg.role === 'user' ? 'justify-end' : 'justify-start'">
+                            
+                            <div class="flex gap-4 w-full" :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
+                                <div class="w-8 h-8 rounded flex-shrink-0 flex items-center justify-center text-white"
+                                     :class="msg.role === 'user' ? 'bg-[#5436DA]' : 'bg-[#10a37f]'">
+                                    <i :data-lucide="msg.role === 'user' ? 'user' : 'bot'" class="w-5 h-5"></i>
+                                </div>
+                                
+                                <div class="flex-1 overflow-hidden">
+                                    <div class="font-bold text-xs mb-1 uppercase tracking-tight text-gray-400" x-text="msg.role === 'user' ? 'You' : 'Forge AI'"></div>
+                                    <div class="prose prose-invert prose-p:leading-relaxed prose-pre:my-2 max-w-none text-gray-200" 
+                                         x-html="renderMarkdown(msg.content)"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="isLoading" class="py-6 flex gap-4 animate-pulse">
+                        <div class="w-8 h-8 rounded bg-gray-700 flex-shrink-0"></div>
+                        <div class="space-y-2 flex-1">
+                            <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                            <div class="h-4 bg-gray-700 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="absolute bottom-0 left-0 w-full chat-gradient pb-8 pt-10">
+                <div class="max-w-3xl mx-auto px-4">
+                    <div class="relative flex flex-col w-full py-3 flex-grow md:py-4 md:pl-4 relative border border-white/20 bg-[#2f2f2f] rounded-xl shadow-2xl">
+                        <textarea 
+                            x-model="userInput"
+                            @keydown.enter.prevent="if(!isLoading) sendMessage()"
+                            placeholder="Message Forge AI..."
+                            class="m-0 w-full resize-none border-0 bg-transparent p-0 pr-12 focus:ring-0 focus-visible:ring-0 pl-2 md:pl-0 outline-none max-h-48 overflow-y-auto"
+                            rows="1"
+                            x-ref="input"
+                            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"></textarea>
+                        <button 
+                            @click="sendMessage()"
+                            :disabled="isLoading || !userInput.trim()"
+                            class="absolute right-2 bottom-2 md:right-3 md:bottom-3 p-1.5 bg-white text-black rounded-lg disabled:opacity-20 hover:bg-gray-200 transition">
+                            <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 text-center mt-3">Forge AI - A tool by diffanmol using OpenRouter. Responses may vary.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div x-show="showSettings" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div class="bg-[#212121] w-full max-w-md p-6 rounded-xl border border-white/10 shadow-2xl">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <i data-lucide="sliders" class="w-5 h-5 text-orange-500"></i> Forge Settings
+            </h2>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">OpenRouter API Key</label>
+                    <input type="password" x-model="apiKey" placeholder="sk-or-..." class="w-full bg-[#2f2f2f] border border-white/10 rounded-lg px-4 py-2.5 focus:border-orange-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">Target Model</label>
+                    <input type="text" x-model="modelName" class="w-full bg-[#2f2f2f] border border-white/10 rounded-lg px-4 py-2.5 outline-none">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end gap-3">
+                <button @click="showSettings = false" class="px-5 py-2 text-sm text-gray-400 hover:text-white transition">Cancel</button>
+                <button @click="saveSettings()" class="px-5 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold transition">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function forgeApp() {
+            return {
+                sidebarOpen: true,
+                showSettings: false,
+                isLoading: false,
+                userInput: '',
+                apiKey: localStorage.getItem('forge_key') || '',
+                modelName: localStorage.getItem('forge_model') || 'google/gemini-2.0-flash-001',
+                currentChatId: null,
+                messages: [],
+                chatHistory: JSON.parse(localStorage.getItem('forge_history') || '[]'),
+
+                init() {
+                    lucide.createIcons();
+                    // Auto-focus input
+                    this.$nextTick(() => this.$refs.input.focus());
+                },
+
+                renderMarkdown(content) {
+                    return marked.parse(content, { breaks: true });
+                },
+
+                saveSettings() {
+                    localStorage.setItem('forge_key', this.apiKey);
+                    localStorage.setItem('forge_model', this.modelName);
+                    this.showSettings = false;
+                },
+
+                createNewChat() {
+                    this.currentChatId = null;
+                    this.messages = [];
+                    this.$nextTick(() => {
+                        this.$refs.input.focus();
+                        this.$refs.input.style.height = 'auto';
+                    });
+                },
+
+                async sendMessage() {
+                    if (!this.userInput.trim() || !this.apiKey) {
+                        if(!this.apiKey) this.showSettings = true;
+                        return;
+                    }
+
+                    const prompt = this.userInput;
+                    this.messages.push({ role: 'user', content: prompt });
+                    this.userInput = '';
+                    this.isLoading = true;
+                    
+                    this.$nextTick(() => {
+                        const container = document.getElementById('chat-container');
+                        container.scrollTop = container.scrollHeight;
+                        this.$refs.input.style.height = 'auto';
+                    });
+
+                    try {
+                        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                            method: "POST",
+                            headers: {
+                                "Authorization": `Bearer ${this.apiKey}`,
+                                "Content-Type": "application/json",
+                                "HTTP-Referer": window.location.href,
+                                "X-Title": "Forge AI"
+                            },
+                            body: JSON.stringify({
+                                "model": this.modelName,
+                                "messages": this.messages.map(m => ({role: m.role, content: m.content}))
+                            })
+                        });
+
+                        const data = await response.json();
+                        const reply = data.choices[0].message.content;
+                        this.messages.push({ role: 'assistant', content: reply });
+
+                        // Handle History Logic
+                        if (!this.currentChatId) {
+                            this.currentChatId = Date.now();
+                            this.chatHistory.unshift({
+                                id: this.currentChatId,
+                                title: prompt.substring(0, 30),
+                                messages: this.messages
+                            });
+                        } else {
+                            const chat = this.chatHistory.find(c => c.id === this.currentChatId);
+                            if (chat) chat.messages = this.messages;
+                        }
+                        
+                        localStorage.setItem('forge_history', JSON.stringify(this.chatHistory));
+                        
+                    } catch (e) {
+                        this.messages.push({ role: 'assistant', content: "**Error:** System failure. Check API key or connection." });
+                    } finally {
+                        this.isLoading = false;
+                        this.$nextTick(() => {
+                            const container = document.getElementById('chat-container');
+                            container.scrollTop = container.scrollHeight;
+                            lucide.createIcons();
+                        });
+                    }
+                },
+
+                loadChat(id) {
+                    const chat = this.chatHistory.find(c => c.id === id);
+                    if (chat) {
+                        this.currentChatId = id;
+                        this.messages = JSON.parse(JSON.stringify(chat.messages));
+                    }
+                },
+
+                deleteChat(id) {
+                    this.chatHistory = this.chatHistory.filter(c => c.id !== id);
+                    localStorage.setItem('forge_history', JSON.stringify(this.chatHistory));
+                    if (this.currentChatId === id) this.createNewChat();
+                }
+            }
+        }
+    </script>
 </body>
-</html>
+  </html>
